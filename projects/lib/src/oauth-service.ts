@@ -725,20 +725,29 @@ export class OAuthService extends AuthConfig {
                 .set('scope', this.scope)
                 .set('refresh_token', this._storage.getItem('refresh_token'));
 
-            if (this.dummyClientSecret) {
-                params = params.set('client_secret', this.dummyClientSecret);
-            }
-
             if (this.customQueryParams) {
                 for (const key of Object.getOwnPropertyNames(this.customQueryParams)) {
                     params = params.set(key, this.customQueryParams[key]);
                 }
             }
 
-            const headers = new HttpHeaders().set(
+            let headers = new HttpHeaders().set(
                 'Content-Type',
                 'application/x-www-form-urlencoded'
             );
+
+            if (this.useHttpBasicAuthForPasswordFlow) {
+              const header = btoa(`${this.clientId}:${this.dummyClientSecret}`);
+              headers = headers.set(
+                  'Authorization',
+                  'Basic ' + header);
+            } else {
+              params = params.set('client_id', this.clientId);
+
+              if (this.dummyClientSecret) {
+                  params = params.set('client_secret', this.dummyClientSecret);
+              }
+            }
 
             this.http
                 .post<TokenResponse>(this.tokenEndpoint, params, { headers })
